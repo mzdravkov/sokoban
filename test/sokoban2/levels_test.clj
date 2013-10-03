@@ -13,3 +13,7 @@
   (testing "add completed goals to a level (goals with boxes on them)"
     (is (> (count (filter #{:c} (flatten (set-completed-goals (new-level 5 5)))))
            0))))
+
+(deftest summon-player-test
+  (testing "add player to the field by putting him near a completed goal"
+    (is (= false true))))
