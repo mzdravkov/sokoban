@@ -5,7 +5,7 @@ An attempt to create online Player vs Player sokoban game with different modes o
 ## TODO
 First thing to be made is the automatic level generation
 ### Automatic level generation
-The algorithm is as follows:
+The algorithm is as follows:  
 1) Initialize new field, where all squares are walls  
 2) Put few completed goals on the field  
 3) Put (virtual) player at one of the completed goals' neighbours  
