@@ -2,7 +2,6 @@
   (:use [clojure.data.priority-map]))
 
 ; A* taken from http://nakkaya.com/2010/06/01/path-finding-using-astar-in-clojure/
-; #######################################################################
 
 (defn manhattan-distance [[x1 y1] [x2 y2]]
   (+ (Math/abs ^Integer (- x2 x1)) (Math/abs ^Integer (- y2 y1))))
@@ -93,6 +92,3 @@
               area)]
     (doseq [line area]
       (println line))))
-
-; ##################################################################
-; end of A*

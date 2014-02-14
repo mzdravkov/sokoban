@@ -1,13 +1,15 @@
 (ns sokoban2.levels
-  (:use [sokoban2.search]))
+  (:use sokoban2.search))
+;  (:use clojure.core.matrix)
+;  (:use clojure.core.matrix.operators))
 
-(defn- height [level]
+(defn height [level]
   (count level))
 
-(defn- width [level]
+(defn width [level]
   (count (first level)))
 
-(defn- vectorize2d
+(defn vectorize2d
   "converts all subseqs and the seq to vectors"
   [coll]
   (vec (map vec coll)))
@@ -49,7 +51,11 @@
 (defn valid-neighbour?
   "checks if neighbour is valid (in the borders)"
   [level [x y]]
-  (and (> x 0) (> y 0) (< x (width level)) (< y (height level))))
+  (and (>= x 0)
+       (>= y 0)
+       (< x (width level))
+       (< y (height level))
+       (= (get-in level [y x]) :w)))
 
 (defn valid-neighbours
   "returns only the valid (in the borders of the matrix)"
@@ -68,23 +74,24 @@
         [y val] (map-indexed vector row)
         :when (= item val)] [x y]))
 
-;TODO fix this
 (defn summon-player
-  "set player (:p) on the field"
+  "set player (:p) on the field near :c"
   [level]
-  (loop [pos [(rand-int (height level)) (rand-int (width level))]]
-    (if (= (get-in level pos) :w)
-      (assoc-in level pos :p)
-      (recur [(rand-int (height level)) (rand-int (width level))]))))
+  (assoc-in level (rand-neighbour level (rand-nth (find2d level :c))) :p))
+
+(defn new-level-with-player
+  "creates new level, populates it with completed goals and adds a player"
+  [w h]
+  (summon-player (set-completed-goals (new-level w h))))
 
 
 (defn move
   [level from to]
-  (let [path (sokoban2.search/search level from to)]
+  (let [path (sokoban2.search/search level from to :w)] ; the A* uses 0s and 1s to represent walls and free spaces
     (loop [field level [p & rp] path]
-      (if (empty? rp)
+      (if (nil? p)
         field
-        (recur (assoc-in field (reverse p) 0) rp)))))
+        (recur (assoc-in field (reverse p) :e) rp)))))
 
 ;(defn move-boxes
 ;  [level [box & cboxes] pos]
