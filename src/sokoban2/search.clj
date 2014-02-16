@@ -22,10 +22,10 @@
          :when (and (>= tx 0)
                     (>= ty 0)
                     (or (= tx x) (= ty y))
-                    (<= tx width)
-                    (<= ty height)
+                    (<= tx width)  ; <= or < ?
+                    (<= ty height) ; <= or < ?
                     (not= [x y] [tx ty])
-                    (= (nth (nth map ty) tx) allowed) ;AAAA
+                    (allowed (nth (nth map ty) tx)) ;AAAA
                     (not (contains? closed [tx ty])))]
      [tx ty])))
 
@@ -57,8 +57,8 @@
            closed {}
            width (-> map first count dec)
            height (-> map count dec)]
-       (when (and (= (nth (nth map sy) sx) allowed) ;AAAA
-                  (= (nth (nth map ey) ex) allowed)) ;AAAA
+       (when (and (not (nil? (allowed (nth (nth map sy) sx)))) ;AAAA
+                  (not (nil? (allowed (nth (nth map ey) ex))))) ;AAAA
          (search map width height open closed start end allowed))))
 
   ([map width height open closed start end allowed]
