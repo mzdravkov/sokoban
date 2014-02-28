@@ -25,7 +25,7 @@
                     (<= tx width)  ; <= or < ?
                     (<= ty height) ; <= or < ?
                     (not= [x y] [tx ty])
-                    (allowed (nth (nth map ty) tx)) ;AAAA
+                    (allowed (nth (nth map tx) ty)) ;AAAA
                     (not (contains? closed [tx ty])))]
      [tx ty])))
 
@@ -57,8 +57,8 @@
            closed {}
            width (-> map first count dec)
            height (-> map count dec)]
-       (when (and (not (nil? (allowed (nth (nth map sy) sx)))) ;AAAA
-                  (not (nil? (allowed (nth (nth map ey) ex))))) ;AAAA
+       (when (and (not (nil? (allowed (nth (nth map sx) sy)))) ;AAAA
+                  (not (nil? (allowed (nth (nth map ex) ey))))) ;AAAA
          (search map width height open closed start end allowed))))
 
   ([map width height open closed start end allowed]

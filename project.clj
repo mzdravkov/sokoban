@@ -6,4 +6,4 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [lein-reload "1.0.0"]
                  [org.clojure/data.priority-map "0.0.2"]
-                 [net.mikera/core.matrix "0.19.0"]])
+                 [org.clojure/math.numeric-tower "0.0.4"]])
