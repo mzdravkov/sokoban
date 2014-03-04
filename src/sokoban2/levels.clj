@@ -88,7 +88,7 @@
 
 (defn move
   [level from to]
-  (let [path (sokoban2.search/search level from to #{:w :e})]
+  (let [path (sokoban2.search/search from to level)]
     (loop [field level [p & rp] path]
       (if (nil? p)
         field
@@ -107,21 +107,21 @@
 
 (defn rand-valid-direction [field [px py] [bx by]]
   (first
-    (filter #(and (valid-neighbour? field [(+ bx (* (first %) -1)) (+ by (* (second %) -1))]) ; check if person can go to push the box
+    (filter #(and (valid-neighbour? field [(+ bx (first %) (first %)) (+ by (second %) (second %))]) ; check if person can go to pull the box
                   (valid-neighbour? field [(+ bx (first %)) (+ by (second %))])) ; check the destination of the box
             (repeatedly rand-direction))))
 
 (defn move-box [[player-x player-y] [box-x box-y] level]
-    (loop [moves-count (rand-int (sqrt (* (height level) (width level))))
+    (loop [moves-count 0;(rand-int (sqrt (* (height level) (width level))))
            bx box-x
            by box-y
            px player-x
            py player-y
            field level
            [dirx diry] (rand-valid-direction field [px py] [bx by])]
-      (let [next-field (-> (move-something field [px py] [(+ bx (* dirx -1)) (+ by (* diry -1))] :p)
-                           (move-something [bx by] [(+ bx dirx) (+ by diry)] :c)
-                           (move-something [(+ bx (* dirx -1)) (+ by (* diry -1))] [bx by] :p))]
+      (let [next-field (-> (move-something field [px py] [(+ bx dirx) (+ by diry)] :p)
+                           (move-something [(+ bx dirx) (+ by diry)] [(+ bx dirx dirx) (+ by diry diry)] :p)
+                           (move-something [bx by] [(+ bx dirx) (+ by diry)] :c))]
         (if (zero? moves-count)
           next-field
           (let [rvd (deref
@@ -134,11 +134,9 @@
 
 (defn move-boxes
   ([level]
-   (move-boxes level (find2d level :c) (first (find2d level :p))))
+   (move-boxes level (reverse (find2d level :c)) (reverse (first (find2d level :p)))))
   ([level [[bx by] & boxes] [px py]]
    (let [new-level (move-box [px py] [bx by] level)]
-     (println boxes)
-     (println new-level)
      (if (empty? boxes)
        new-level
-       (recur new-level boxes (first (find2d new-level :p)))))))
+       (recur new-level boxes (reverse (first (find2d new-level :p))))))))

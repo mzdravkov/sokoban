@@ -1,94 +1,62 @@
-(ns sokoban2.search
-  (:use [clojure.data.priority-map]))
+(ns sokoban2.search)
 
-; A* taken from http://nakkaya.com/2010/06/01/path-finding-using-astar-in-clojure/
+(defn neighbours*
+  "return all neighbours of position"
+  [[x y]]
+  (let [n [[-1 0] [1 0] [0 -1] [0 1]]]
+    (map
+      #(vector (+ x (first %)) (+ y (second %)))
+      n)))
 
-(defn manhattan-distance [[x1 y1] [x2 y2]]
-  (+ (Math/abs ^Integer (- x2 x1)) (Math/abs ^Integer (- y2 y1))))
+(defn neighbours-list [neighbours counter]
+  (vec
+   (map
+    #(vector % (inc counter))
+    neighbours)))
 
-(defn cost [curr start end]
-  (let [g (manhattan-distance start curr)
-        h (manhattan-distance curr end)
-        f (+ g h)]
-    [f g h]))
+(defn valid? [yx lvl]
+  (let [v (get-in lvl (reverse yx))]
+    (or (= v :w)
+        (= v :e)
+        (= v :p))))
 
-(defn edges ; this function is changed from the original in order to have only orthogonal movements
-  ([map width height closed [x y]]
-   (edges map width height closed [x y] 0))
+(defn compare-counters-by [f]
+  (fn [[p1 c1] [p2 c2]]
+    (if (< c1 c2)
+      [p1 c1]
+      [p2 c2])))
 
-  ([map width height closed [x y] allowed]
-   (for [tx (range (- x 1) (+ x 2))
-         ty (range (- y 1) (+ y 2))
-         :when (and (>= tx 0)
-                    (>= ty 0)
-                    (or (= tx x) (= ty y))
-                    (<= tx width)  ; <= or < ?
-                    (<= ty height) ; <= or < ?
-                    (not= [x y] [tx ty])
-                    (allowed (nth (nth map tx) ty)) ;AAAA
-                    (not (contains? closed [tx ty])))]
-     [tx ty])))
+(defn unique-by [f xs]
+  (vec
+   (map
+    #(reduce (compare-counters-by f) %)
+    (vals (group-by #(first %) xs)))))
 
-(defn path [end parent closed]
-  (reverse
-   (loop [path [end parent]
-          node (closed parent)]
-     (if (nil? node)
-       path
-       (recur (conj path node) (closed node))))))
+(defn find-path
+  ([start end vect] (find-path start end vect [] start))
+  ([start end vect path current]
+     (let [curr-neighbours (neighbours* current)]
+       (if-let [target (some #{end} curr-neighbours)]
+         (conj path current target)
+         (find-path start end vect (conj path current) (first (reduce
+                                                               (compare-counters-by min)
+                                                               (filter #(some #{(first %)} curr-neighbours) vect))))))))
 
-(defn search ; changed a bit in order to be able to search path through specific type of squares
-  ([map start end]
-   (search map start end 0))
-
-  ([map start end allowed]
-     (let [[sx sy] start
-           [ex ey] end
-           open (priority-map-by
-                 (fn [x y]
-                   (if (= x y)
-                     0
-                     (let [[f1 _ h1] x
-                           [f2 _ h2] y]
-                       (if (= f1 f2)
-                         (if (< h1 h2) -1 1)
-                         (if (< f1 f2) -1 1)))))
-                 start (cost start start end))
-           closed {}
-           width (-> map first count dec)
-           height (-> map count dec)]
-       (when (and (not (nil? (allowed (nth (nth map sx) sy)))) ;AAAA
-                  (not (nil? (allowed (nth (nth map ex) ey))))) ;AAAA
-         (search map width height open closed start end allowed))))
-
-  ([map width height open closed start end allowed]
-     (if-let [[coord [_ _ _ parent]] (peek open)]
-       (if-not (= coord end)
-         (let [closed (assoc closed coord parent)
-               edges (edges map width height closed coord allowed)
-               open (reduce
-                     (fn [open edge]
-                       (if (not (contains? open edge))
-                         (assoc open edge (conj (cost edge start end) coord))
-                         (let [[_ pg] (open edge)
-                               [nf ng nh] (cost edge start end)]
-                           (if (< ng pg)
-                             (assoc open edge (conj [nf ng nh] coord))
-                             open))))
-                     (pop open) edges)]
-           (recur map width height open closed start end allowed))
-         (path end parent closed)))))
-
-(defn draw-map [area start end]
-  (let [path (into #{} (time (search area start end)))
-        area (map-indexed
-              (fn [idx-row row]
-                (map-indexed
-                 (fn [idx-col col]
-                   (cond (contains? path [idx-col idx-row]) \X
-                         (= 1 col) \#
-                         :default \space))
-                 row))
-              area)]
-    (doseq [line area]
-      (println line))))
+(defn search
+  ([start end level]
+     (search start end level [[end 0]]))
+  ([start end level vect]
+     (loop [vect vect index 0 changed false]
+       (let [[coord counter] (vect index)]
+         (if (some #(= start (first %)) vect)
+           (find-path start end vect)
+           (let [nl (neighbours-list (neighbours* coord) counter)
+                 fnl (filter #(valid? (first %) level) nl)]
+             (let [new-vect (unique-by min (concat vect fnl))]
+               (if (>= (inc index) (count new-vect))
+                 (if-not changed
+                   nil
+                   (recur new-vect 0 false))
+                 (recur new-vect (inc index) (if (= (count vect) (count new-vect))
+                                               (if changed true false)
+                                               true))))))))))
