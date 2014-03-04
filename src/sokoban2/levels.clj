@@ -1,8 +1,5 @@
 (ns sokoban2.levels
-  (:use sokoban2.search)
-  (:use clojure.math.numeric-tower))
-;  (:use clojure.core.matrix)
-;  (:use clojure.core.matrix.operators))
+  (:use sokoban2.search))
 
 (defn height [level]
   (count level))
