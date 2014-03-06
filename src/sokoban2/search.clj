@@ -38,9 +38,15 @@
      (let [curr-neighbours (neighbours* current)]
        (if-let [target (some #{end} curr-neighbours)]
          (conj path current target)
-         (find-path start end vect (conj path current) (first (reduce
-                                                               (compare-counters-by min)
-                                                               (filter #(some #{(first %)} curr-neighbours) vect))))))))
+         (if (= current end)
+           (conj path end)
+           (find-path start
+                      end
+                      vect
+                      (conj path current)
+                      (first (reduce
+                               (compare-counters-by min)
+                               (filter #(some #{(first %)} curr-neighbours) vect)))))))))
 
 (defn search
   ([start end level]

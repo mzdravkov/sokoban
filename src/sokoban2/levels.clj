@@ -21,7 +21,7 @@
   "returns the number of needed goals for a level"
   [level]
   (+ (/ (* (height level) (width level))
-        15)
+        (+ (height level) (width level)))
      (inc (rand-int 3))))
 
 (defn set-completed-goals
@@ -109,7 +109,7 @@
             (repeatedly rand-direction))))
 
 (defn move-box [[player-x player-y] [box-x box-y] level]
-    (loop [moves-count 0;(rand-int (sqrt (* (height level) (width level))))
+    (loop [moves-count (rand-int (/ (* (height level) (width level)) (* 2 (/ (+ (height level) (width level)) 2))))
            bx box-x
            by box-y
            px player-x
@@ -122,18 +122,38 @@
         (if (zero? moves-count)
           next-field
           (let [rvd (deref
-                      (future (rand-valid-direction next-field [bx by] [(+ bx dirx) (+ by diry)]))
+                      (future (rand-valid-direction next-field [(+ bx dirx dirx) (+ by diry diry)] [(+ bx dirx) (+ by diry)]))
                       100
                       :none)]
             (if (= rvd :none)
               next-field
-              (recur (dec moves-count) (+ bx dirx) (+ by diry) bx by next-field rvd)))))))
+              (recur (dec moves-count) (+ bx dirx) (+ by diry) (+ bx dirx dirx) (+ by diry diry) next-field rvd)))))))
 
 (defn move-boxes
   ([level]
-   (move-boxes level (reverse (find2d level :c)) (reverse (first (find2d level :p)))))
+   (move-boxes level (map reverse (find2d level :c)) (reverse (first (find2d level :p)))))
   ([level [[bx by] & boxes] [px py]]
    (let [new-level (move-box [px py] [bx by] level)]
      (if (empty? boxes)
        new-level
        (recur new-level boxes (reverse (first (find2d new-level :p))))))))
+
+(defn generate-level [width height]
+  (let [init-level (new-level-with-player width height)
+        goals (find2d init-level :c)
+        level (move-boxes init-level)]
+    (reduce #(assoc-in %1 %2 (if (= :c (get %1 %2)) :gc :g)) level goals)))
+
+(defn draw-map [lvl]
+  (doseq [line (map (fn [xs]
+                      (map #(case %
+                              :e " "
+                              :w "#"
+                              :c "$"
+                              :gc "v"
+                              :go "8"
+                              :g "?"
+                              :p "o")
+                           xs))
+                    lvl)]
+    (println line)))
