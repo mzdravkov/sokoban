@@ -32,6 +32,13 @@
     #(reduce (compare-counters-by f) %)
     (vals (group-by #(first %) xs)))))
 
+(defn prioritise-empties [vect level]
+  (map (fn [[[x y] c]]
+         (if (= (get-in level [y x]) :e)
+           [[x y] (dec c)]
+           [[x y] c]))
+       vect))
+
 (defn find-path
   ([start end vect] (find-path start end vect [] start))
   ([start end vect path current]
@@ -55,7 +62,7 @@
      (loop [vect vect index 0 changed false]
        (let [[coord counter] (vect index)]
          (if (some #(= start (first %)) vect)
-           (find-path start end vect)
+           (find-path start end (prioritise-empties vect level))
            (let [nl (neighbours-list (neighbours* coord) counter)
                  fnl (filter #(valid? (first %) level) nl)]
              (let [new-vect (unique-by min (concat vect fnl))]
