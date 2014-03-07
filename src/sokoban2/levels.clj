@@ -102,10 +102,13 @@
       direction
       (vec (reverse direction)))))
 
+(defn valid-direction? [field [px py] [bx by] [dirx diry]]
+  (and (valid-neighbour? field [(+ bx dirx dirx) (+ by diry diry)]) ; check if person can go to pull the box
+       (valid-neighbour? field [(+ bx dirx) (+ by diry)]))) ; check the destination of the box
+
 (defn rand-valid-direction [field [px py] [bx by]]
   (first
-    (filter #(and (valid-neighbour? field [(+ bx (first %) (first %)) (+ by (second %) (second %))]) ; check if person can go to pull the box
-                  (valid-neighbour? field [(+ bx (first %)) (+ by (second %))])) ; check the destination of the box
+    (filter #(valid-direction? field [px py] [bx by] %)
             (repeatedly rand-direction))))
 
 (defn move-box [[player-x player-y] [box-x box-y] level]
@@ -115,34 +118,42 @@
            px player-x
            py player-y
            field level
-           [dirx diry] (rand-valid-direction field [px py] [bx by])]
+           [dirx diry] (rand-valid-direction field [px py] [bx by])
+           last-rvd :none]
       (let [next-field (-> (move-something field [px py] [(+ bx dirx) (+ by diry)] :p)
                            (move-something [(+ bx dirx) (+ by diry)] [(+ bx dirx dirx) (+ by diry diry)] :p)
                            (move-something [bx by] [(+ bx dirx) (+ by diry)] :c))]
         (if (zero? moves-count)
-          next-field
-          (let [rvd (deref
+          [next-field [(+ bx dirx) (+ by diry)]]
+          (let [new-rvd (deref
                       (future (rand-valid-direction next-field [(+ bx dirx dirx) (+ by diry diry)] [(+ bx dirx) (+ by diry)]))
                       100
-                      :none)]
+                      :none)
+                rvd (if (or (= last-rvd :none)
+                            (not (valid-direction? next-field [(+ bx dirx dirx) (+ by diry diry)] [(+ bx dirx) (+ by diry)] last-rvd)))
+                      new-rvd
+                      (rand-nth (vector new-rvd last-rvd last-rvd last-rvd last-rvd)))]
             (if (= rvd :none)
-              next-field
-              (recur (dec moves-count) (+ bx dirx) (+ by diry) (+ bx dirx dirx) (+ by diry diry) next-field rvd)))))))
+              [next-field [(+ bx dirx) (+ by diry)]]
+              (recur (dec moves-count) (+ bx dirx) (+ by diry) (+ bx dirx dirx) (+ by diry diry) next-field rvd [dirx diry])))))))
 
 (defn move-boxes
   ([level]
    (move-boxes level (map reverse (find2d level :c)) (reverse (first (find2d level :p)))))
   ([level [[bx by] & boxes] [px py]]
-   (let [new-level (move-box [px py] [bx by] level)]
+   (let [[new-level new-box-pos] (move-box [px py] [bx by] level)]
      (if (empty? boxes)
        new-level
-       (recur new-level boxes (reverse (first (find2d new-level :p))))))))
+       (recur new-level (rand-nth (vector boxes boxes boxes boxes (conj boxes new-box-pos))) (reverse (first (find2d new-level :p))))))))
 
 (defn generate-level [width height]
   (let [init-level (new-level-with-player width height)
         goals (find2d init-level :c)
         level (move-boxes init-level)]
-    (reduce #(assoc-in %1 %2 (if (= :c (get %1 %2)) :gc :g)) level goals)))
+    (reduce #(assoc-in %1 %2 (cond (= :c (get-in %1 %2)) :gc
+                                   (= :o (get-in %1 %2)) :go
+                                   :else :g))
+            level goals)))
 
 (defn draw-map [lvl]
   (doseq [line (map (fn [xs]
