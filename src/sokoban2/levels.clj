@@ -138,14 +138,23 @@
               [next-field [(+ bx dirx) (+ by diry)]]
               (recur (dec moves-count) (+ bx dirx) (+ by diry) (+ bx dirx dirx) (+ by diry diry) next-field rvd [dirx diry])))))))
 
+(defn manhattan-distance [[x1 y1] [x2 y2]]
+  (+ (Math/abs ^Integer (- x2 x1)) (Math/abs ^Integer (- y2 y1))))
+
 (defn move-boxes
   ([level]
-   (move-boxes level (map reverse (find2d level :c)) (reverse (first (find2d level :p)))))
+   (let [player (reverse (first (find2d level :p)))
+         boxes  (map reverse (find2d level :c))
+         ordered-boxes (sort-by (partial manhattan-distance player) boxes)]
+   (move-boxes level ordered-boxes player)))
   ([level [[bx by] & boxes] [px py]]
    (let [[new-level new-box-pos] (move-box [px py] [bx by] level)]
      (if (empty? boxes)
        new-level
-       (recur new-level (rand-nth (vector boxes boxes boxes (conj boxes new-box-pos))) (reverse (first (find2d new-level :p))))))))
+       (recur new-level (rand-nth
+                          (vector boxes boxes boxes (sort-by (partial manhattan-distance [px py])
+                                                             (conj boxes new-box-pos))))
+                          (reverse (first (find2d new-level :p))))))))
 
 (defn add-outer-walls [level]
   (let [w (+ (height level) 2)
