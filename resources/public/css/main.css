@@ -1,0 +1,22 @@
+body {
+  background: url(/images/wall.jpg) repeat;
+  background-size: 42px;
+}
+
+table tr td div {
+  width: 42px;
+  height: 42px;
+}
+
+table{
+	padding: 0; margin: 0;
+	border-collapse: collapse;
+}
+
+table tr {
+	padding: 0; margin: 0;
+}
+
+table td {
+	padding: 0; margin: 0;
+}
