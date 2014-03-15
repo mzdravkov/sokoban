@@ -9,6 +9,19 @@
              [page :refer [html5]]
              [page :refer [include-js include-css]]]))
 
+(defn get-level
+  [w h]
+  (letfn [(lvl-or-false []
+            (deref (future (sokoban2.levels/generate-level w h))
+                           3000
+                           false))]
+  (loop [lvl (lvl-or-false)]
+    (if lvl
+      (if (sokoban2.levels/find2d lvl :p)
+        lvl
+        (recur (lvl-or-false)))
+      (recur (lvl-or-false))))))
+
 (defn index-page []
   (html5
     [:head
@@ -16,9 +29,8 @@
      (include-js "/js/main.js")
      (include-css "css/main.css")]
     [:body
-     [:h1 "GSokoban"]
-     ;[:canvas {:id "field" :width 300 :height 300}]
-     (let [lvl (sokoban2.levels/generate-level 11 11)
+     [:h1 {:style "color: white;"} "SokoMexican"]
+     (let [lvl (get-level 11 11)
            width (sokoban2.levels/width lvl)
            height (sokoban2.levels/height lvl)
            ids (partition width

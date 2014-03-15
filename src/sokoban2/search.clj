@@ -20,6 +20,11 @@
         (= v :e)
         (= v :p))))
 
+(defn valid-no-walls? [yx lvl]
+  (let [v (get-in lvl (reverse yx))]
+    (or (= v :e)
+        (= v :p))))
+
 (defn compare-counters-by [f]
   (fn [[p1 c1] [p2 c2]]
     (if (< c1 c2)
@@ -32,15 +37,9 @@
     #(reduce (compare-counters-by f) %)
     (vals (group-by #(first %) xs)))))
 
-(defn prioritise-empties [vect level]
-  (map (fn [[[x y] c]]
-         (if (= (get-in level [y x]) :e)
-           [[x y] (dec c)]
-           [[x y] c]))
-       vect))
-
 (defn find-path
-  ([start end vect] (find-path start end vect [] start))
+  ([start end vect]
+   (find-path start end vect [] start))
   ([start end vect path current]
      (let [curr-neighbours (neighbours* current)]
        (if-let [target (some #{end} curr-neighbours)]
@@ -55,16 +54,19 @@
                                (compare-counters-by min)
                                (filter #(some #{(first %)} curr-neighbours) vect)))))))))
 
-(defn search
-  ([start end level]
-     (search start end level [[end 0]]))
-  ([start end level vect]
+(defn search-path
+  ([start end level walls]
+     (search-path start end level [[end 0]] walls))
+  ([start end level vect walls]
      (loop [vect vect index 0 changed false]
        (let [[coord counter] (vect index)]
          (if (some #(= start (first %)) vect)
-           (find-path start end (prioritise-empties vect level))
+           (find-path start end vect)
            (let [nl (neighbours-list (neighbours* coord) counter)
-                 fnl (filter #(valid? (first %) level) nl)]
+                 fnl (filter #((if walls
+                                 valid?
+                                 valid-no-walls?) (first %) level)
+                             nl)]
              (let [new-vect (unique-by min (concat vect fnl))]
                (if (>= (inc index) (count new-vect))
                  (if-not changed
@@ -73,3 +75,9 @@
                  (recur new-vect (inc index) (if (= (count vect) (count new-vect))
                                                (if changed true false)
                                                true))))))))))
+
+(defn search
+  [start end level]
+  (if-let [path (search-path start end level false)]
+    path
+    (search-path start end level true)))
