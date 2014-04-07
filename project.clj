@@ -8,6 +8,7 @@
                  [org.clojure/clojurescript "0.0-2173"
                   :exclusions [org.apache.ant/ant]]
                  [compojure "1.1.6"]
+                 [clj-time "0.6.0"]
                  [hiccup "1.0.4"]]
   :plugins [[lein-ring "0.8.10"]
             [lein-cljsbuild "1.0.2"]]

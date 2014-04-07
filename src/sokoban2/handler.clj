@@ -22,6 +22,37 @@
         (recur (lvl-or-false)))
       (recur (lvl-or-false))))))
 
+(def current-level (agent (get-level 11 11)))
+
+(defn next-level [_ w h]
+  (get-level w h))
+
+(defn now [] (.getTime (java.util.Date.)))
+
+(def lvl-time (ref (now)))
+(def in-game? (agent false))
+
+(future (while true
+          (Thread/sleep 30000)
+          (send current-level next-level 11 11)
+          (dosync (ref-set lvl-time (now)))
+          (send in-game? not)))
+
+(defn status-page []
+  (html5
+    [:head
+     [:title "GSokoban"]]
+    [:body "llama"]))
+
+(defn level-time []
+  (html5
+    [:body
+     [:div {:id "level-time"}
+      (let [timer (- (now) @lvl-time)]
+        (if @in-game?
+          timer
+          (- timer)))]]))
+
 (defn index-page []
   (html5
     [:head
@@ -30,7 +61,7 @@
      (include-css "css/main.css")]
     [:body
      [:h1 {:style "color: white;"} "SokoMexican"]
-     (let [lvl (get-level 11 11)
+     (let [lvl @current-level;(get-level 11 11)
            width (sokoban2.levels/width lvl)
            height (sokoban2.levels/height lvl)
            ids (partition width
@@ -47,10 +78,12 @@
                                        row ids-row)))
                         lvl ids)))))
      [:input {:id "input" :size "0"}]
-     [:script "shit();"]]))
+     [:script "start();"]]))
 
 (defroutes app-routes
   (GET "/" [] (index-page))
+  (GET "/status" [] (status-page))
+  (GET "/level-time" [] (level-time))
   (route/resources "/")
   (route/not-found "Not Found"))
 
